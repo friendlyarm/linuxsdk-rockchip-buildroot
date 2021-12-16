@@ -18,8 +18,10 @@ FIRMWARE_DIR = system
 
 ifeq ($(call qstrip,$(BR2_ARCH)),aarch64)
 RKWIFIBT_ARCH=arm64
+CROSS_COMPILE=aarch64-buildroot-linux-gnu-
 else ifeq ($(call qstrip,$(BR2_ARCH)),arm)
 RKWIFIBT_ARCH=arm
+CROSS_COMPILE=arm-buildroot-linux-gnu-
 endif
 
 BT_DRIVER_ARCH = $(shell grep -o "arm[^ ]*" $(TOPDIR)/../kernel/.config)
@@ -118,7 +120,7 @@ define RKWIFIBT_BUILD_CMDS
     $(TARGET_CC) -o $(@D)/src/rk_wifi_init $(@D)/src/rk_wifi_init.c
     $(MAKE) -C $(@D)/realtek/rtk_hciattach/ CC=$(TARGET_CC)
     $(MAKE) -C $(@D)/src/CY_WL_API/ CC=$(TARGET_CC)
-    $(TARGET_CONFIGURE_OPTS) $(MAKE) -C $(TOPDIR)/../kernel/ M=$(@D)/realtek/bluetooth_uart_driver ARCH=$(BT_DRIVER_ARCH)
+    CROSS_COMPILE=$(CROSS_COMPILE) $(TARGET_CONFIGURE_OPTS) $(MAKE) -C $(TOPDIR)/../kernel/ M=$(@D)/realtek/bluetooth_uart_driver ARCH=$(BT_DRIVER_ARCH)
 endef
 
 ifneq ($(BR2_PACKAGE_THUNDERBOOT), y)
