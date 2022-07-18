@@ -2,15 +2,15 @@ RKADK_SITE = $(TOPDIR)/../external/rkadk
 RKADK_SITE_METHOD = local
 RKADK_INSTALL_STAGING = YES
 
-RKADK_DEPENDENCIES += rkmedia iniparser
+RKADK_DEPENDENCIES += rkmedia rkfsmk iniparser cjson
 
 ifeq ($(BR2_PACKAGE_RKADK_ROCKIT), y)
 RKADK_DEPENDENCIES += rockit
 RKADK_CONF_OPTS += -DUSE_ROCKIT=ON \
-	-DROCKIT_HEADER_DIR=$(STAGING_DIR)/usr/include/rockit
+	-DROCKIT_HEADER_DIR=$(STAGING_DIR)/usr/include
 endif
 
-ifeq ($(BR2_PACKAGE_RKMEDIA_USE_AIQ), y)
+ifeq ($(BR2_PACKAGE_CAMERA_ENGINE_RKAIQ), y)
 RKADK_DEPENDENCIES += camera_engine_rkaiq
 RKADK_CONF_OPTS += -DUSE_RKAIQ=ON
 endif

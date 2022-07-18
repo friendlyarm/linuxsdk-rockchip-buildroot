@@ -9,19 +9,26 @@ config BR2_ROCKCHIP_HAS_ISP1
     bool
     help
       To indicate this SoC has Rockchip ISP1
+
 config BR2_ROCKCHIP_HAS_ISP2
     bool
     help
       To indicate this SoC has Rockchip ISP2
 
+config BR2_ROCKCHIP_HAS_ISP3
+    bool
+    help
+      To indicate this SoC has Rockchip ISP3
+
 choice
 	default BR2_PACKAGE_RK3308
 	prompt "Rockchip chip support"
 
-config BR2_PACKAGE_ORION
-	bool "ORION chip"
+config BR2_PACKAGE_RK3588
+	bool "RK3588 chip"
+	select BR2_ROCKCHIP_HAS_ISP3
 	help
-		Use rockchip's orion chip
+		Use rockchip's rk3588 chip
 
 config BR2_PACKAGE_RV1108
 	bool "RV1108 chip"
@@ -139,9 +146,10 @@ endchoice
 # Camera Engine packages
 config BR2_PACKAGE_CAMERA_ENGINE
     bool "Rockchip Camera Engine For ISP"
-    depends on BR2_ROCKCHIP_HAS_ISP1 || BR2_ROCKCHIP_HAS_ISP2
+    depends on BR2_ROCKCHIP_HAS_ISP1 || BR2_ROCKCHIP_HAS_ISP2 || BR2_ROCKCHIP_HAS_ISP3
     select BR2_PACKAGE_CAMERA_ENGINE_RKISP if BR2_ROCKCHIP_HAS_ISP1
     select BR2_PACKAGE_CAMERA_ENGINE_RKAIQ if BR2_ROCKCHIP_HAS_ISP2
+    select BR2_PACKAGE_CAMERA_ENGINE_RKAIQ if BR2_ROCKCHIP_HAS_ISP3
     help
         Depend on Chip Type, there are different camera_engine packages.
         Enable this config to choose camera_engine package by chip automatically.
@@ -163,7 +171,6 @@ source "package/rockchip/alexaClientSDK/Config.in"
 source "package/rockchip/mpp/Config.in"
 source "package/rockchip/address_sanitizer/Config.in"
 source "package/rockchip/gstreamer1-rockchip/Config.in"
-source "package/rockchip/gstreamer1-rockchip-extra/Config.in"
 source "package/rockchip/camera_engine_cifisp/Config.in"
 source "package/rockchip/wakeWordAgent/Config.in"
 source "package/rockchip/pcba/Config.in"
@@ -232,6 +239,7 @@ source "package/rockchip/minigui_demo/Config.in"
 source "package/rockchip/kernel_modules/Config.in"
 source "package/rockchip/tensorflow/Config.in"
 source "package/rockchip/rknpu/Config.in"
+source "package/rockchip/rknpu2/Config.in"
 source "package/rockchip/rknpu-fw/Config.in"
 source "package/rockchip/rknn_demo/Config.in"
 source "package/rockchip/ficial_gate/Config.in"
@@ -289,4 +297,5 @@ source "package/rockchip/rkiio/Config.in"
 source "package/rockchip/lvgl/Config.in"
 source "package/rockchip/cvr_app/Config.in"
 source "package/rockchip/rkipc/Config.in"
+source "package/rockchip/rkfsmk/Config.in"
 endif

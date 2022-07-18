@@ -1,5 +1,17 @@
 export GST_DEBUG_NO_COLOR=1
 
+# Skip vstride aligning, which is not required when using RKVENC.
+# export GST_MPP_ENC_UNALIGNED_VSTRIDE=1
+
+# Convert to NV12(using RGA) when output format is NV12_10.
+# export GST_MPP_DEC_DISABLE_NV12_10=1
+
+# Convert to NV12(using RGA) when output format is not NV12.
+# export GST_MPP_VIDEODEC_DEFAULT_FORMAT=NV12
+
+# Try to use ARM AFBC to get better performance, but not work for all sinks.
+# export GST_MPP_VIDEODEC_DEFAULT_ARM_AFBC=1
+
 # Use below env variables to configure kmssink plane ZPOS.
 # export KMSSINK_PLANE_ZPOS=0
 # export KMSSINK_PLANE_ON_TOP=1
@@ -9,6 +21,9 @@ export GST_DEBUG_NO_COLOR=1
 # kernel(due to ecac2033831e FROMLIST: drm: skip wait on vblank for set plane).
 # Skip it would bring better performance with frame dropping.
 # export KMSSINK_DISABLE_VSYNC=1
+
+# The waylandsink is async by default, which allows frame dropping.
+# export WAYLANDSINK_SYNC_FRAME=1
 
 # Put video surface above UI window in waylandsink.
 # export WAYLANDSINK_PLACE_ABOVE=1

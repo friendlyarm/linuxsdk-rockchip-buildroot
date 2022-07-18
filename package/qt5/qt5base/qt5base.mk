@@ -11,6 +11,10 @@ QT5BASE_SOURCE = qtbase-$(QT5_SOURCE_TARBALL_PREFIX)-$(QT5BASE_VERSION).tar.xz
 QT5BASE_DEPENDENCIES = host-pkgconf pcre2 zlib
 QT5BASE_INSTALL_STAGING = YES
 
+# 0010-Avoid-processing-intensive-painting-of-high-number-o.patch
+# 0011-Improve-fix-for-avoiding-huge-number-of-tiny-dashes.patch
+QT5BASE_IGNORE_CVES += CVE-2021-38593
+
 # A few comments:
 #  * -no-pch to workaround the issue described at
 #     http://comments.gmane.org/gmane.comp.lib.qt.devel/5933.
@@ -27,11 +31,12 @@ QT5BASE_CONFIGURE_OPTS += \
 	-system-zlib \
 	-system-pcre \
 	-no-pch \
-	-shared
-
-ifeq ($(BR2_PACKAGE_QT5_VERSION_5_9)$(BR2_PACKAGE_QT5_VERSION_5_12),)
-QT5BASE_CONFIGURE_OPTS += \
+	-shared \
 	-no-feature-relocatable
+
+ifeq ($(BR2_PACKAGE_BINUTILS_ENABLE_GOLD),y)
+QT5BASE_CONFIGURE_OPTS += \
+	-linker gold
 endif
 
 # starting from version 5.9.0, -optimize-debug is enabled by default
@@ -84,7 +89,7 @@ else
 QT5BASE_CONFIGURE_OPTS += -no-gbm
 endif
 
-ifeq ($(BR2_ENABLE_DEBUG),y)
+ifeq ($(BR2_ENABLE_RUNTIME_DEBUG),y)
 QT5BASE_CONFIGURE_OPTS += -debug
 else
 QT5BASE_CONFIGURE_OPTS += -release
@@ -115,6 +120,13 @@ QT5BASE_DEPENDENCIES += cups
 QT5BASE_CONFIGURE_OPTS += -cups
 else
 QT5BASE_CONFIGURE_OPTS += -no-cups
+endif
+
+ifeq ($(BR2_PACKAGE_ZSTD),y)
+QT5BASE_DEPENDENCIES += zstd
+QT5BASE_CONFIGURE_OPTS += -zstd
+else
+QT5BASE_CONFIGURE_OPTS += -no-zstd
 endif
 
 # Qt5 SQL Plugins
@@ -207,13 +219,8 @@ else
 QT5BASE_CONFIGURE_OPTS += -no-eglfs
 endif
 
-ifeq ($(BR2_PACKAGE_QT5_VERSION_5_9),)
 QT5BASE_CONFIGURE_OPTS += $(if $(BR2_PACKAGE_OPENSSL),-openssl,-no-openssl)
 QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_OPENSSL),openssl)
-else
-QT5BASE_CONFIGURE_OPTS += $(if $(BR2_PACKAGE_LIBOPENSSL_1_0),-openssl,-no-openssl)
-QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_LIBOPENSSL_1_0),openssl)
-endif
 
 QT5BASE_CONFIGURE_OPTS += $(if $(BR2_PACKAGE_QT5BASE_FONTCONFIG),-fontconfig,-no-fontconfig)
 QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_QT5BASE_FONTCONFIG),fontconfig)
@@ -231,6 +238,8 @@ QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_QT5BASE_TSLIB),tslib)
 
 QT5BASE_CONFIGURE_OPTS += $(if $(BR2_PACKAGE_LIBGLIB2),-glib,-no-glib)
 QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_LIBGLIB2),libglib2)
+
+QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_LIBKRB5),libkrb5)
 
 QT5BASE_CONFIGURE_OPTS += $(if $(BR2_PACKAGE_QT5BASE_ICU),-icu,-no-icu)
 QT5BASE_DEPENDENCIES   += $(if $(BR2_PACKAGE_QT5BASE_ICU),icu)
@@ -302,7 +311,7 @@ QT5BASE_ARCH_CONFIG_FILE = $(@D)/mkspecs/devices/linux-buildroot-g++/arch.conf
 ifeq ($(BR2_TOOLCHAIN_HAS_LIBATOMIC),y)
 # Qt 5.8 needs atomics, which on various architectures are in -latomic
 define QT5BASE_CONFIGURE_ARCH_CONFIG
-	printf 'LIBS += -latomic\n' >$(QT5BASE_ARCH_CONFIG_FILE)
+	printf '!host_build { \n LIBS += -latomic\n }' >$(QT5BASE_ARCH_CONFIG_FILE)
 endef
 endif
 

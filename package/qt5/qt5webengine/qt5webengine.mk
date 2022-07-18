@@ -4,17 +4,16 @@
 #
 ################################################################################
 
-QT5WEBENGINE_VERSION = $(call qstrip,$(BR2_PACKAGE_QT5WEBENGINE_VERSION))
-QT5WEBENGINE_MAJOR_VERSION = $(call qstrip,$(basename $(QT5WEBENGINE_VERSION)))
-QT5WEBENGINE_SITE = https://download.qt.io/archive/qt/$(QT5WEBENGINE_MAJOR_VERSION)/$(QT5WEBENGINE_VERSION)/submodules
+QT5WEBENGINE_VERSION = $(QT5_VERSION)
+QT5WEBENGINE_SITE = $(QT5_SITE)
 QT5WEBENGINE_SOURCE = qtwebengine-$(QT5_SOURCE_TARBALL_PREFIX)-$(QT5WEBENGINE_VERSION).tar.xz
 QT5WEBENGINE_DEPENDENCIES = ffmpeg libglib2 libvpx libxkbcommon opus webp \
 	qt5declarative qt5webchannel host-bison host-flex host-gperf \
 	host-pkgconf host-python
 QT5WEBENGINE_INSTALL_STAGING = YES
 
-ifneq ($(QT5WEBENGINE_VERSION),)
-include package/qt5/qt5webengine/chromium-$(QT5WEBENGINE_VERSION).inc
+ifneq ($(QT5_VERSION),)
+include package/qt5/qt5webengine/chromium-$(QT5_VERSION).inc
 endif
 
 QT5WEBENGINE_LICENSE = GPL-2.0 or LGPL-3.0 or GPL-3.0 or GPL-3.0 with exception
@@ -31,6 +30,17 @@ QT5WEBENGINE_DEPENDENCIES += xlib_libXScrnSaver xlib_libXcomposite \
 endif
 
 QT5WEBENGINE_DEPENDENCIES += host-libpng host-libnss libnss
+
+# Below host deps are needed by generate_colors_info tool
+QT5WEBENGINE_DEPENDENCIES += host-libpng host-webp
+
+ifeq ($(BR2_PACKAGE_QT5BASE_FONTCONFIG),y)
+QT5WEBENGINE_DEPENDENCIES += host-freetype
+endif
+
+ifeq ($(BR2_PACKAGE_QT5BASE_JPEG),y)
+QT5WEBENGINE_DEPENDENCIES += host-libjpeg
+endif
 
 QT5WEBENGINE_CONFIG += -ffmpeg
 
@@ -78,14 +88,11 @@ define QT5WEBENGINE_INSTALL_TARGET_ENV
 endef
 QT5WEBENGINE_POST_INSTALL_TARGET_HOOKS += QT5WEBENGINE_INSTALL_TARGET_ENV
 
-# qtwebengine 5.12 has color issue when using VDA for WEBRTC.
-ifneq ($(BR2_PACKAGE_QT5WEBENGINE_WEBRTC)$(BR2_PACKAGE_QT5WEBENGINE_5_12),yy)
 ifeq ($(BR2_PACKAGE_LIBV4L_RKMPP),y)
 define QT5WEBENGINE_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 755 $(QT5WEBENGINE_PKGDIR)/S99qtwebengine.sh \
 		$(TARGET_DIR)/etc/init.d/S99qtwebengine.sh
 endef
-endif
 endif
 
 $(eval $(qmake-package))

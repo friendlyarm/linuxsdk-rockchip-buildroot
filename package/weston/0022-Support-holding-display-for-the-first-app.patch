@@ -1,7 +1,7 @@
-From 70199967ad388b615b17687bdef52945e329833c Mon Sep 17 00:00:00 2001
+From 8443ef5a3ccf51ddbb8aae5e0100b9084f857931 Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Fri, 3 Jul 2020 10:20:40 +0800
-Subject: [PATCH 22/51] Support holding display for the first app
+Subject: [PATCH 22/54] Support holding display for the first app
 
 Use '-w' or '--warm-up' to enable it.
 
@@ -13,10 +13,10 @@ Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
  3 files changed, 36 insertions(+)
 
 diff --git a/compositor/main.c b/compositor/main.c
-index 8eb8a47..528347d 100644
+index d7eb422..b931a6c 100644
 --- a/compositor/main.c
 +++ b/compositor/main.c
-@@ -661,6 +661,7 @@ usage(int error_code)
+@@ -679,6 +679,7 @@ usage(int error_code)
  		"  -f, --flight-rec-scopes=SCOPE\n\t\t\tSpecify log scopes to "
  			"subscribe to.\n\t\t\tCan specify multiple scopes, "
  			"each followed by comma\n"
@@ -24,7 +24,7 @@ index 8eb8a47..528347d 100644
  		"  -h, --help\t\tThis help message\n\n");
  
  #if defined(BUILD_DRM_COMPOSITOR)
-@@ -3117,6 +3118,8 @@ wet_main(int argc, char *argv[])
+@@ -3301,6 +3302,8 @@ wet_main(int argc, char *argv[], const struct weston_testsuite_data *test_data)
  	bool wait_for_debugger = false;
  	struct wl_protocol_logger *protologger = NULL;
  
@@ -33,7 +33,7 @@ index 8eb8a47..528347d 100644
  	const struct weston_option core_options[] = {
  		{ WESTON_OPTION_STRING, "backend", 'B', &backend },
  		{ WESTON_OPTION_STRING, "shell", 0, &shell },
-@@ -3135,6 +3138,7 @@ wet_main(int argc, char *argv[])
+@@ -3319,6 +3322,7 @@ wet_main(int argc, char *argv[], const struct weston_testsuite_data *test_data)
  		{ WESTON_OPTION_BOOLEAN, "debug", 0, &debug_protocol },
  		{ WESTON_OPTION_STRING, "logger-scopes", 'l', &log_scopes },
  		{ WESTON_OPTION_STRING, "flight-rec-scopes", 'f', &flight_rec_scopes },
@@ -41,7 +41,7 @@ index 8eb8a47..528347d 100644
  	};
  
  	wl_list_init(&wet.layoutput_list);
-@@ -3286,6 +3290,7 @@ wet_main(int argc, char *argv[])
+@@ -3483,6 +3487,7 @@ wet_main(int argc, char *argv[], const struct weston_testsuite_data *test_data)
  	wet.compositor->idle_time = idle_time;
  	wet.compositor->default_pointer_grab = NULL;
  	wet.compositor->exit = handle_exit;
@@ -50,10 +50,10 @@ index 8eb8a47..528347d 100644
  	weston_compositor_log_capabilities(wet.compositor);
  
 diff --git a/include/libweston/libweston.h b/include/libweston/libweston.h
-index 4b0bcc9..68d02cb 100644
+index 62dd9a3..5017a37 100644
 --- a/include/libweston/libweston.h
 +++ b/include/libweston/libweston.h
-@@ -1119,6 +1119,8 @@ struct weston_compositor {
+@@ -1187,6 +1187,8 @@ struct weston_compositor {
  	struct weston_log_scope *timeline;
  
  	struct content_protection *content_protection;
@@ -63,10 +63,10 @@ index 4b0bcc9..68d02cb 100644
  
  struct weston_buffer {
 diff --git a/libweston/compositor.c b/libweston/compositor.c
-index 0ea0cb1..3aa3ff9 100644
+index 984ec8b..a7aa9f0 100644
 --- a/libweston/compositor.c
 +++ b/libweston/compositor.c
-@@ -117,6 +117,24 @@ weston_compositor_is_static_layer(struct weston_layer *layer)
+@@ -176,6 +176,24 @@ weston_compositor_is_static_layer(struct weston_layer *layer)
  	}
  }
  
@@ -91,7 +91,7 @@ index 0ea0cb1..3aa3ff9 100644
  /** Send wl_output events for mode and scale changes
   *
   * \param head Send on all resources bound to this head.
-@@ -2654,6 +2672,12 @@ weston_compositor_build_view_list(struct weston_compositor *compositor)
+@@ -2875,6 +2893,12 @@ weston_compositor_build_view_list(struct weston_compositor *compositor,
  
  	wl_list_for_each(layer, &compositor->layer_list, link) {
  		wl_list_for_each(view, &layer->view_list.link, layer_link.link) {
@@ -101,12 +101,12 @@ index 0ea0cb1..3aa3ff9 100644
 +				compositor->warm_up = false;
 +			}
 +
- 			view_list_add(compositor, view);
+ 			view_list_add(compositor, view, output);
  		}
  	}
-@@ -2709,6 +2733,11 @@ weston_output_repaint(struct weston_output *output, void *repaint_data)
+@@ -2930,6 +2954,11 @@ weston_output_repaint(struct weston_output *output, void *repaint_data)
  	/* Rebuild the surface list and update surface transforms up front. */
- 	weston_compositor_build_view_list(ec);
+ 	weston_compositor_build_view_list(ec, output);
  
 +	if (ec->warm_up) {
 +		weston_log("holding display for the first app...\n");
@@ -114,8 +114,8 @@ index 0ea0cb1..3aa3ff9 100644
 +	}
 +
  	/* Find the highest protection desired for an output */
- 	wl_list_for_each(ev, &ec->view_list, link) {
- 		if (ev->surface->output_mask & (1u << output->id)) {
+ 	wl_list_for_each(pnode, &output->paint_node_z_order_list,
+ 			 z_order_link) {
 -- 
 2.20.1
 
