@@ -1,7 +1,7 @@
-From 740cfb20ae7e386391fb6528a8765e5827c9781c Mon Sep 17 00:00:00 2001
+From ffac35e4a3ec43fb93f2f20fe4055a9ebc5cc3c4 Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Wed, 26 May 2021 07:10:47 +0800
-Subject: [PATCH] Support sync events
+Subject: [PATCH 5/8] Support sync events
 
 Wait for child process when handling sync events(start with '*').
 
@@ -17,7 +17,7 @@ Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
  2 files changed, 22 insertions(+), 5 deletions(-)
 
 diff --git a/input-event-daemon.c b/input-event-daemon.c
-index 4bf2a33..e1528a6 100644
+index d2aad4d..4ba024a 100644
 --- a/input-event-daemon.c
 +++ b/input-event-daemon.c
 @@ -233,7 +233,7 @@ static int idle_event_parse(unsigned long idle) {
@@ -73,7 +73,7 @@ index 4bf2a33..e1528a6 100644
      new_switch_event->code = strdup(code);
      new_switch_event->value = atoi(value);
      new_switch_event->exec = strdup(exec);
-@@ -783,8 +795,9 @@ void daemon_start_listener() {
+@@ -784,8 +796,9 @@ void daemon_start_listener() {
      }
  }
  
@@ -84,7 +84,7 @@ index 4bf2a33..e1528a6 100644
      if(pid == 0) {
          const char *args[] = {
              "sh", "-c", command, NULL
-@@ -810,6 +823,8 @@ static void daemon_exec(const char *command) {
+@@ -811,6 +824,8 @@ static void daemon_exec(const char *command) {
          _exit(127);
      } else if(pid < 0) {
          perror(PROGRAM": fork()");

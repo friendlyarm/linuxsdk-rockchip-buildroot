@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          weston
 # Required-Start:    mountvirtfs
@@ -17,7 +17,7 @@ PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
 
 start_weston()
 {
-	/usr/bin/weston&
+	/usr/bin/weston 2>&1 | tee /var/log/weston.log &
 }
 
 stop_weston()
@@ -38,7 +38,11 @@ case "$1" in
 		;;
 	restart|reload)
 		echo -n "stoping weston... "
-		stop_weston && sleep .3
+		stop_weston
+
+		while pgrep -x weston; do
+			sleep .1
+		done
 		echo "done."
 
 		echo -n "starting weston... "

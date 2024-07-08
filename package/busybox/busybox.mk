@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-BUSYBOX_VERSION = 1.36.0
+BUSYBOX_VERSION = 1.36.1
 BUSYBOX_SITE = https://www.busybox.net/downloads
 BUSYBOX_SOURCE = busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_LICENSE = GPL-2.0, bzip2-1.0.4
@@ -76,13 +76,14 @@ BUSYBOX_DEPENDENCIES = \
 # Link against libtirpc if available so that we can leverage its RPC
 # support for NFS mounting with BusyBox
 ifeq ($(BR2_PACKAGE_LIBTIRPC),y)
-ifeq ($(BR2_STATIC_LIBS)$(BR2_PACKAGE_BUSYBOX_STATIC),)
 BUSYBOX_DEPENDENCIES += libtirpc host-pkgconf
 BUSYBOX_CFLAGS += "`$(PKG_CONFIG_HOST_BINARY) --cflags libtirpc`"
 # Don't use LDFLAGS for -ltirpc, because LDFLAGS is used for
 # the non-final link of modules as well.
 BUSYBOX_CFLAGS_busybox += "`$(PKG_CONFIG_HOST_BINARY) --libs libtirpc`"
-endif
+define BUSYBOX_SET_TIRPC
+	$(call KCONFIG_SET_OPT,CONFIG_EXTRA_LDLIBS,"tirpc")
+endef
 endif
 
 # Allows the build system to tweak CFLAGS
@@ -202,13 +203,10 @@ define BUSYBOX_SET_MMU
 endef
 endif
 
+# If we're using static libs do the same for busybox
 ifneq ($(BR2_STATIC_LIBS)$(BR2_PACKAGE_BUSYBOX_STATIC),)
-define BUSYBOX_SET_STATIC
+define BUSYBOX_PREFER_STATIC
 	$(call KCONFIG_ENABLE_OPT,CONFIG_STATIC)
-endef
-else
-define BUSYBOX_SET_STATIC
-	$(call KCONFIG_DISABLE_OPT,CONFIG_STATIC)
 endef
 endif
 
@@ -289,6 +287,15 @@ define BUSYBOX_INSTALL_INDIVIDUAL_BINARIES
 endef
 endif
 
+# Disable SHA1 and SHA256 HWACCEL to avoid segfault in init
+# with some x86 toolchains (mostly musl?).
+ifeq ($(BR2_i386),y)
+define BUSYBOX_MUSL_DISABLE_SHA_HWACCEL
+	$(call KCONFIG_DISABLE_OPT,CONFIG_SHA1_HWACCEL)
+	$(call KCONFIG_DISABLE_OPT,CONFIG_SHA256_HWACCEL)
+endef
+endif
+
 ifeq ($(BR2_PACKAGE_BUSYBOX_UNICODE),y)
 ifneq ($(qstrip $(BR2_GENERATE_LOCALE)),)
 define BUSYBOX_SET_LOCALE
@@ -349,9 +356,7 @@ endif
 
 ifeq ($(BR2_INIT_BUSYBOX),y)
 define BUSYBOX_INSTALL_INITTAB
-	if test ! -e $(TARGET_DIR)/etc/inittab; then \
-		$(INSTALL) -D -m 0644 package/busybox/inittab $(TARGET_DIR)/etc/inittab; \
-	fi
+	$(INSTALL) -D -m 0644 package/busybox/inittab $(TARGET_DIR)/etc/inittab
 endef
 endif
 
@@ -408,8 +413,10 @@ endef
 BUSYBOX_TARGET_FINALIZE_HOOKS += BUSYBOX_INSTALL_ADD_TO_SHELLS
 
 define BUSYBOX_KCONFIG_FIXUP_CMDS
+	$(BUSYBOX_SET_TIRPC)
+	$(BUSYBOX_MUSL_DISABLE_SHA_HWACCEL)
 	$(BUSYBOX_SET_MMU)
-	$(BUSYBOX_SET_STATIC)
+	$(BUSYBOX_PREFER_STATIC)
 	$(BUSYBOX_SET_MDEV)
 	$(BUSYBOX_SET_CRYPT_SHA)
 	$(BUSYBOX_LINUX_PAM)

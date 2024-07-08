@@ -12,12 +12,12 @@
 #include "multimedia/gst/rtsp.config"
 #include "multimedia/gst/video.config"
 #include "multimedia/mpp.config"
-#include "benchmark.config"
-#include "chromium.config"
-#include "debug.config"
+#include "tools/benchmark.config"
+#include "tools/common.config"
+#include "tools/test.config"
+#include "network/chromium.config"
 #include "npu2.config"
 #include "powermanager.config"
-#include "test.config"
 #include "weston.config"
 BR2_PACKAGE_GST1_LIBAV=y
 BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y

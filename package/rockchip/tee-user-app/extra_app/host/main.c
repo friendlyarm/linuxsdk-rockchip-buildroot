@@ -11,7 +11,34 @@
 #include "ta_keybox.h"
 
 #define KEY_SIZE 32
-#define DEFAULT_STORAGE		TEE_STORAGE_PRIVATE_RPMB
+
+#ifdef CA_DEBUG
+#define ca_info(fmt, ...) printf("[CA] "fmt, ##__VA_ARGS__)
+#else
+#define ca_info(fmt, ...)
+#endif
+
+static uint32_t ca_get_storage_type(void)
+{
+	char *type = getenv("SECURITY_STORAGE");
+
+	if (!type) {
+		ca_info("No found SECURITY_STORAGE\n");
+		return 0;
+	}
+
+	if (!memcmp(type, "RPMB", sizeof("RPMB"))) {
+		ca_info("Security Storage is RPMB\n");
+		return TEE_STORAGE_PRIVATE_RPMB;
+	} else if (!memcmp(type, "SECURITY", sizeof("SECURITY"))) {
+		ca_info("Security Storage is Security\n");
+		return TEE_STORAGE_PRIVATE_REE;
+	}
+
+	ca_info("Bad Security storage\n");
+
+	return 0;
+}
 
 static int run_system(const char *command)
 {
@@ -24,47 +51,13 @@ static int run_system(const char *command)
 	} else {
 		if (WIFEXITED(status)) {
 			if (WEXITSTATUS(status)) {
-				printf("ERROR: system command failed\n");
+				// printf("ERROR: system command failed\n");
 				return -1;
 			}
 		}
 	}
 
 	return 0;
-}
-
-static int grep_string(const char *dst, const char *target)
-{
-	int i;
-
-	for (i = 0; i < strlen(dst); i++) {
-		if (!memcmp(&dst[i], target, strlen(target)))
-			return 0;
-	}
-	return -1;
-}
-
-static int check_ramdisk_env(const char *file)
-{
-	FILE *fp;
-	char buf[1000];
-
-	fp = fopen(file, "r");
-	if (!fp) {
-		printf("ERROR: bad node\n");
-		return -1;
-	}
-
-	while (!feof(fp)) {
-		fgets(buf, 1000, fp);
-		if (!grep_string(buf, "none / rootfs")) {
-			fclose(fp);
-			return 0;
-		}
-	};
-
-	fclose(fp);
-	return -1;
 }
 
 static void dump_hex(char *var_name, const uint8_t *data,
@@ -105,14 +98,15 @@ static int process_key(int cmd, char *key)
 	TEEC_SharedMemory sm;
 	const TEEC_UUID uuid = TA_KEYBOX_UUID;
 
-	/* [1] Connect to TEE */
+	ca_info("cmd = %s\n", cmd == TA_KEY_READ ? "TA_KEY_READ" : "TA_KEY_WRITE");
+	ca_info("[1] Connect to TEE\n");
 	res = TEEC_InitializeContext(NULL, &contex);
 	if (res != TEEC_SUCCESS) {
 		printf("TEEC_InitializeContext failed with code 0x%x\n", res);
 		return res;
 	}
 
-	/* [2] Open seesion with TEE application */
+	ca_info("[2] Open seesion with TEE application\n");
 	res = TEEC_OpenSession(&contex, &session, &uuid,
 			       TEEC_LOGIN_PUBLIC, NULL, NULL, &error_origin);
 	if (res != TEEC_SUCCESS) {
@@ -121,7 +115,7 @@ static int process_key(int cmd, char *key)
 		goto out;
 	}
 
-	/* [3] Perform operation initialization */
+	ca_info("[3] Perform operation initialization\n");
 	memset(&operation, 0, sizeof(TEEC_Operation));
 	if (cmd == TA_KEY_READ) {
 		sm.size = KEY_SIZE;
@@ -141,6 +135,7 @@ static int process_key(int cmd, char *key)
 		operation.params[0].memref.offset = 0;
 		operation.params[0].memref.size = sm.size;
 
+		ca_info("[3-1] Get RNG\n");
 		res = TEEC_InvokeCommand(&session, TA_KEY_RNG, &operation, &error_origin);
 		if (res != TEEC_SUCCESS) {
 			printf("InvokeCommand ERR! res = 0x%x\n", res);
@@ -155,6 +150,7 @@ static int process_key(int cmd, char *key)
 							TEEC_NONE);
 		operation.params[0].value.a = js_hash(0x47c6a7e6, sm.buffer, KEY_SIZE);
 
+		ca_info("js_hash = 0x%x\n", operation.params[0].value.a);
 		res = TEEC_InvokeCommand(&session, TA_KEY_VER, &operation, &error_origin);
 		if (res != TEEC_SUCCESS) {
 			printf("InvokeCommand ERR! res = 0x%x\n", res);
@@ -170,23 +166,10 @@ static int process_key(int cmd, char *key)
 		operation.params[0].memref.parent = &sm;
 		operation.params[0].memref.offset = 0;
 		operation.params[0].memref.size = sm.size;
-		operation.params[1].value.a = DEFAULT_STORAGE;
-		res = TEEC_InvokeCommand(&session, TA_KEY_READ, &operation, &error_origin);
-		if (res != TEEC_SUCCESS) {
-			printf("InvokeCommand ERR! res = 0x%x\n", res);
-			TEEC_ReleaseSharedMemory(&sm);
+		operation.params[1].value.a = ca_get_storage_type();
+		if (!operation.params[1].value.a)
 			goto out1;
-		}
-		 dump_hex("read key -> ", sm.buffer, KEY_SIZE);
 
-		operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT,
-							TEEC_VALUE_INPUT,
-							TEEC_NONE,
-							TEEC_NONE);
-		operation.params[0].memref.parent = &sm;
-		operation.params[0].memref.offset = 0;
-		operation.params[0].memref.size = sm.size;
-		operation.params[1].value.a = DEFAULT_STORAGE;
 		res = TEEC_InvokeCommand(&session, TA_KEY_READ, &operation, &error_origin);
 		if (res != TEEC_SUCCESS) {
 			printf("InvokeCommand ERR! res = 0x%x\n", res);
@@ -194,7 +177,6 @@ static int process_key(int cmd, char *key)
 			goto out1;
 		}
 		dump_hex("read key -> ", sm.buffer, KEY_SIZE);
-
 		memcpy(key, sm.buffer, KEY_SIZE);
 
 		TEEC_ReleaseSharedMemory(&sm);
@@ -206,12 +188,15 @@ static int process_key(int cmd, char *key)
 
 		operation.params[0].tmpref.size = KEY_SIZE;
 		operation.params[0].tmpref.buffer = (void *)key;
-		operation.params[1].value.a = DEFAULT_STORAGE;
+		operation.params[1].value.a = ca_get_storage_type();
+		if (!operation.params[1].value.a)
+			goto out1;
 
 		res = TEEC_InvokeCommand(&session, TA_KEY_WRITE, &operation, &error_origin);
 		if (res != TEEC_SUCCESS) {
 			printf("InvokeCommand ERR! res = 0x%x\n", res);
 		}
+		printf("[CA] write key successful!!!");
 	}
 
 out1:
@@ -284,9 +269,9 @@ static int process_recovery(int argc, char *argv[])
 
 	dump_hex("pw -> ", pw, KEY_SIZE);
 	close(fd);
-#ifdef CA_DEBUG
-	return process_key((argc > 1) ? TA_KEY_READ : TA_KEY_WRITE,
-			   pw);
+#ifdef CA_TEST
+	return process_key(memcmp(argv[1], "write", sizeof("write")) ?
+			   TA_KEY_READ : TA_KEY_WRITE, pw);
 #else
 	return process_key(TA_KEY_WRITE, pw);
 #endif
@@ -323,8 +308,8 @@ static int process_ramfs(void)
 
 int main(int argc, char *argv[])
 {
-#ifdef CA_DEBUG
-	return (argc > 1) ? process_ramfs() : process_recovery(argc, argv);
+#ifdef CA_TEST
+	return (argc > 1) ? process_recovery(argc, argv) : process_ramfs();
 #else
 	int status;
 
@@ -333,21 +318,16 @@ int main(int argc, char *argv[])
 		return process_recovery(argc, argv);
 	}
 
-	/* check proc has mounted */
-	if (run_system("/bin/mount -t proc proc /proc")) {
-		printf("ERROR: failed to run system command\n");
-		return -1;
-	}
+	/* Force proc has mounted */
+	run_system("/bin/mount -t proc proc /proc");
 
 	/* check run at ramdisk */
-	if (run_system("cat /proc/mounts > /tmp/proc_test")) {
-		printf("ERROR: failed to run system command\n");
+	if (run_system("cat /proc/mounts | grep \"/\" -w")) {
+		printf("ERROR: Cannot get root info");
 		return -1;
 	}
 
-	status = check_ramdisk_env("/tmp/proc_test");
-	remove("/tmp/proc_test");
-	if (status)
+	if (!run_system("cat /proc/mounts | grep \"/\" -w | cut -d ' ' -f 1 | grep \"/\""))
 		return -1;
 
 	return process_ramfs();

@@ -24,12 +24,6 @@ ifeq ($(BR2_PACKAGE_ROCKCHIP_MPP_TESTS),y)
 ROCKCHIP_MPP_CONF_OPTS += "-DBUILD_TEST=ON"
 endif
 
-define ROCKCHIP_MPP_LINK_GIT
-	rm -rf $(@D)/.git
-	ln -s $(SRCDIR)/.git $(@D)/
-endef
-ROCKCHIP_MPP_POST_RSYNC_HOOKS += ROCKCHIP_MPP_LINK_GIT
-
 define ROCKCHIP_MPP_REMOVE_NOISY_LOGS
 	sed -i -e "/pp_enable %d/d" \
 		$(@D)/mpp/hal/vpu/jpegd/hal_jpegd_vdpu2.c || true
@@ -37,5 +31,10 @@ define ROCKCHIP_MPP_REMOVE_NOISY_LOGS
 		$(@D)/osal/driver/vcodec_service.c || true
 endef
 ROCKCHIP_MPP_POST_RSYNC_HOOKS += ROCKCHIP_MPP_REMOVE_NOISY_LOGS
+
+define ROCKCHIP_MPP_TARGET_INSTALL_REMOVE_VPU
+	rm -f $(TARGET_DIR)/usr/lib/librockchip_vpu.so*
+endef
+ROCKCHIP_MPP_POST_INSTALL_TARGET_HOOKS += ROCKCHIP_MPP_TARGET_INSTALL_REMOVE_VPU
 
 $(eval $(cmake-package))

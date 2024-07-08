@@ -1,4 +1,4 @@
-From 78fdb1abc730d97e5937ee3414779b9bbdff0413 Mon Sep 17 00:00:00 2001
+From 992bc888808ba8e3e8ad224da83547cabc5048af Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Fri, 5 Mar 2021 10:15:51 +0800
 Subject: [PATCH 19/43] waylandsink: Support window layer property
@@ -17,7 +17,7 @@ Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
  4 files changed, 103 insertions(+), 5 deletions(-)
 
 diff --git a/ext/wayland/gstwaylandsink.c b/ext/wayland/gstwaylandsink.c
-index 071bc5a..f492d72 100644
+index 71d53a1..648b5ff 100644
 --- a/ext/wayland/gstwaylandsink.c
 +++ b/ext/wayland/gstwaylandsink.c
 @@ -61,6 +61,7 @@ enum
@@ -117,7 +117,7 @@ index 071bc5a..f492d72 100644
      default:
        if (!gst_video_overlay_set_property (object, PROP_LAST, prop_id, value))
          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-@@ -773,8 +821,8 @@ gst_wayland_sink_show_frame (GstVideoSink * vsink, GstBuffer * buffer)
+@@ -771,8 +819,8 @@ gst_wayland_sink_show_frame (GstVideoSink * vsink, GstBuffer * buffer)
      if (!self->window) {
        /* if we were not provided a window, create one ourselves */
        self->window = gst_wl_window_new_toplevel (self->display,
@@ -141,10 +141,10 @@ index d4c3764..a417788 100644
    gchar *display_name;
  
 diff --git a/gst-libs/gst/wayland/gstwlwindow.c b/gst-libs/gst/wayland/gstwlwindow.c
-index dd6e1c2..7a3016c 100644
+index 3d4e562..e954ef3 100644
 --- a/gst-libs/gst/wayland/gstwlwindow.c
 +++ b/gst-libs/gst/wayland/gstwlwindow.c
-@@ -252,6 +252,43 @@ gst_wl_window_new_internal (GstWlDisplay * display, GMutex * render_lock)
+@@ -259,6 +259,43 @@ gst_wl_window_new_internal (GstWlDisplay * display, GMutex * render_lock)
    return self;
  }
  
@@ -188,7 +188,7 @@ index dd6e1c2..7a3016c 100644
  void
  gst_wl_window_ensure_fullscreen (GstWlWindow * self, gboolean fullscreen)
  {
-@@ -269,7 +306,7 @@ gst_wl_window_ensure_fullscreen (GstWlWindow * self, gboolean fullscreen)
+@@ -276,7 +313,7 @@ gst_wl_window_ensure_fullscreen (GstWlWindow * self, gboolean fullscreen)
  
  GstWlWindow *
  gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
@@ -197,7 +197,7 @@ index dd6e1c2..7a3016c 100644
      GstVideoRectangle * render_rectangle)
  {
    GstWlWindow *self;
-@@ -306,6 +343,7 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
+@@ -313,6 +350,7 @@ gst_wl_window_new_toplevel (GstWlDisplay * display, const GstVideoInfo * info,
          &xdg_toplevel_listener, self);
  
      gst_wl_window_ensure_fullscreen (self, fullscreen);

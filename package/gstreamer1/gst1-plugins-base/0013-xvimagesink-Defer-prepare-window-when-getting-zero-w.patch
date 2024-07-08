@@ -1,7 +1,7 @@
-From a86f9dcec915d368bb46e311da18f1948493d074 Mon Sep 17 00:00:00 2001
+From c1773b416ae0fe75b3627360aef76008c80414a5 Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Thu, 9 Jun 2022 12:01:28 +0800
-Subject: [PATCH 13/14] xvimagesink: Defer prepare window when getting zero
+Subject: [PATCH 13/22] xvimagesink: Defer prepare window when getting zero
  window handle
 
 The window might not ready when we requesting it.

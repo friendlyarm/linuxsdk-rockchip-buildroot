@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-WESTON_VERSION = 11.0.1
-WESTON_SITE = https://gitlab.freedesktop.org/wayland/weston/-/archive/$(WESTON_VERSION)
-WESTON_SOURCE = weston-$(WESTON_VERSION).tar.gz
+WESTON_VERSION = 13.0.1
+WESTON_SITE = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(WESTON_VERSION)/downloads
+WESTON_SOURCE = weston-$(WESTON_VERSION).tar.xz
 WESTON_LICENSE = MIT
 WESTON_LICENSE_FILES = COPYING
 WESTON_CPE_ID_VENDOR = wayland
@@ -16,24 +16,23 @@ WESTON_DEPENDENCIES = host-pkgconf wayland wayland-protocols \
 	libxkbcommon pixman libpng udev cairo libinput libdrm
 
 WESTON_CONF_OPTS = \
-	-Dbackend-headless=false \
 	-Ddoc=false \
 	-Dremoting=false \
 	-Dtools=calibrator,debug,info,terminal,touch-calibrator
 
-ifeq ($(BR2_PACKAGE_DBUS)$(BR2_PACKAGE_SYSTEMD),yy)
-WESTON_CONF_OPTS += -Dlauncher-logind=true
-WESTON_DEPENDENCIES += dbus systemd
-else
-WESTON_CONF_OPTS += -Dlauncher-logind=false
-endif
+ifeq ($(BR2_PACKAGE_WESTON_SIMPLE_CLIENTS),y)
+# Note: some clients are conditional, see further for the others.
+WESTON_SIMPLE_CLIENTS = \
+	damage \
+	im \
+	shm \
+	touch
 
-ifeq ($(BR2_PACKAGE_SEATD),y)
-WESTON_CONF_OPTS += -Dlauncher-libseat=true
-WESTON_DEPENDENCIES += seatd
-else
-WESTON_CONF_OPTS += -Dlauncher-libseat=false
+ifeq ($(BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_8),y)
+# dmabuf-v4l uses VIDIOC_EXPBUF, only available from 3.8+
+WESTON_SIMPLE_CLIENTS += dmabuf-v4l
 endif
+endif # BR2_PACKAGE_WESTON_SIMPLE_CLIENTS
 
 ifeq ($(BR2_PACKAGE_JPEG),y)
 WESTON_CONF_OPTS += -Dimage-jpeg=true
@@ -49,19 +48,23 @@ else
 WESTON_CONF_OPTS += -Dimage-webp=false
 endif
 
-ifeq ($(BR2_PACKAGE_HAS_LIBEGL_WAYLAND)$(BR2_PACKAGE_HAS_LIBGLES),yy)
+ifeq ($(BR2_PACKAGE_HAS_LIBEGL_WAYLAND)$(BR2_PACKAGE_HAS_LIBGBM)$(BR2_PACKAGE_HAS_LIBGLES),yyy)
 WESTON_CONF_OPTS += -Drenderer-gl=true
-WESTON_DEPENDENCIES += libegl libgles
+WESTON_DEPENDENCIES += libegl libgbm libgles
+ifeq ($(BR2_PACKAGE_WESTON_SIMPLE_CLIENTS),y)
+WESTON_SIMPLE_CLIENTS += dmabuf-egl dmabuf-feedback egl
+endif
 ifeq ($(BR2_PACKAGE_PIPEWIRE)$(BR2_PACKAGE_WESTON_DRM),yy)
-WESTON_CONF_OPTS += -Dpipewire=true
+WESTON_CONF_OPTS += -Dpipewire=true -Dbackend-pipewire=true
 WESTON_DEPENDENCIES += pipewire
 else
-WESTON_CONF_OPTS += -Dpipewire=false
+WESTON_CONF_OPTS += -Dpipewire=false -Dbackend-pipewire=false
 endif
 else
 WESTON_CONF_OPTS += \
 	-Drenderer-gl=false \
-	-Dpipewire=false
+	-Dpipewire=false \
+	-Dbackend-pipewire=false
 endif
 
 ifeq ($(BR2_PACKAGE_WESTON_VNC),y)
@@ -74,6 +77,15 @@ WESTON_CONF_OPTS += -Dbackend-vnc=true
 else
 WESTON_CONF_OPTS += -Dbackend-vnc=false
 endif
+
+ifeq ($(BR2_PACKAGE_WESTON_PIPEWIRE),y)
+WESTON_CONF_OPTS += -Dbackend-pipewire=true
+WESTON_DEPENDENCIES += pipewire
+else
+WESTON_CONF_OPTS += -Dbackend-pipewire=false
+endif
+
+WESTON_CONF_OPTS += -Dsimple-clients=$(subst $(space),$(comma),$(strip $(WESTON_SIMPLE_CLIENTS)))
 
 ifeq ($(BR2_PACKAGE_WESTON_RDP),y)
 WESTON_DEPENDENCIES += freerdp
@@ -169,6 +181,12 @@ else
 WESTON_CONF_OPTS += -Dshell-kiosk=false
 endif
 
+ifeq ($(BR2_PACKAGE_WESTON_SCREENSHARE),y)
+WESTON_CONF_OPTS += -Dscreenshare=true
+else
+WESTON_CONF_OPTS += -Dscreenshare=false
+endif
+
 ifeq ($(BR2_PACKAGE_WESTON_DEMO_CLIENTS),y)
 WESTON_CONF_OPTS += -Ddemo-clients=true
 WESTON_DEPENDENCIES += pango
@@ -178,12 +196,6 @@ endif
 
 ifeq ($(BR2_PACKAGE_ROCKCHIP_RGA),y)
 WESTON_DEPENDENCIES += rockchip-rga
-endif
-
-ifeq ($(BR2_PACKAGE_HAS_LIBEGL_WAYLAND)$(BR2_PACKAGE_HAS_LIBGLES),yy)
-WESTON_CONF_OPTS += -Dsimple-clients=all
-else
-WESTON_CONF_OPTS += -Dsimple-clients=
 endif
 
 ifeq ($(BR2_PACKAGE_WESTON_DEFAULT_PIXMAN),y)

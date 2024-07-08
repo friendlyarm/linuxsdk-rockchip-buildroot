@@ -1,37 +1,30 @@
-From 65b545d762100c4012c2f8176f5c296d5bfcbdc4 Mon Sep 17 00:00:00 2001
+From 9f5e033dd10f36a19a3e33c72d3a001a26157d0d Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Sat, 15 Dec 2018 12:20:01 +0800
-Subject: [PATCH 2/5] modetest: Speed up dumping info
+Subject: [PATCH 2/4] modetest: Speed up dumping info
 
 Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
 ---
- tests/modetest/modetest.c | 28 +++++++++++++++++++++-------
- 1 file changed, 21 insertions(+), 7 deletions(-)
+ tests/modetest/modetest.c | 22 +++++++++++++++++-----
+ tests/util/kms.c          |  2 +-
+ 2 files changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/tests/modetest/modetest.c b/tests/modetest/modetest.c
-index 8ff6c80..5291ca0 100644
+index d9e761e..4ec5631 100644
 --- a/tests/modetest/modetest.c
 +++ b/tests/modetest/modetest.c
-@@ -50,6 +50,7 @@
- #include <strings.h>
- #include <errno.h>
- #include <poll.h>
-+#include <fcntl.h>
- #include <sys/time.h>
- #if HAVE_SYS_SELECT_H
- #include <sys/select.h>
-@@ -71,6 +72,10 @@
- static enum util_fill_pattern primary_fill = UTIL_PATTERN_SMPTE;
+@@ -72,6 +72,10 @@ static enum util_fill_pattern primary_fill = UTIL_PATTERN_SMPTE;
  static enum util_fill_pattern secondary_fill = UTIL_PATTERN_TILES;
+ static drmModeModeInfo user_mode;
  
 +int encoders = 0, connectors = 0, crtcs = 0, planes = 0, fbs = 0;
-+int dump_only;
-+#define need_resource(type) (!dump_only || type##s)
++int needs_all;
++#define needs_resource(type) (needs_all || type##s)
 +
  struct crtc {
  	drmModeCrtc *crtc;
  	drmModeObjectProperties *props;
-@@ -485,7 +490,7 @@ static void dump_crtcs(struct device *dev)
+@@ -496,7 +500,7 @@ static void dump_crtcs(struct device *dev)
  	printf("\n");
  }
  
@@ -40,67 +33,63 @@ index 8ff6c80..5291ca0 100644
  {
  	drmModeFB *fb;
  	int i;
-@@ -554,6 +559,7 @@ static void free_resources(struct resources *res)
+@@ -565,6 +569,7 @@ static void free_resources(struct resources *res)
  		return;
  
  #define free_resource(_res, type, Type)					\
-+	if (need_resource(type))						\
++	if (needs_resource(type))						\
  	do {									\
  		if (!(_res)->type##s)						\
  			break;							\
-@@ -566,6 +572,7 @@ static void free_resources(struct resources *res)
+@@ -577,6 +582,7 @@ static void free_resources(struct resources *res)
  	} while (0)
  
  #define free_properties(_res, type)					\
-+	if (need_resource(type))						\
++	if (needs_resource(type))						\
  	do {									\
  		for (i = 0; i < (int)(_res)->count_##type##s; ++i) {	\
  			unsigned int j;										\
-@@ -578,10 +585,10 @@ static void free_resources(struct resources *res)
- 
- 	free_properties(res, plane);
- 	free_resource(res, plane, Plane);
--
+@@ -593,6 +599,7 @@ static void free_resources(struct resources *res)
  	free_properties(res, connector);
  	free_properties(res, crtc);
  
-+	if (need_resource(connector))
++	if (needs_resource(connector))
  	for (i = 0; i < res->count_connectors; i++)
  		free(res->connectors[i].name);
  
-@@ -630,6 +637,7 @@ static struct resources *get_resources(struct device *dev)
+@@ -641,6 +648,7 @@ static struct resources *get_resources(struct device *dev)
      }
  
  #define get_resource(_res, __res, type, Type)					\
-+	if (need_resource(type))						\
++	if (needs_resource(type))						\
  	do {									\
  		for (i = 0; i < (int)(_res)->count_##type##s; ++i) {	\
  			uint32_t type##id = (__res)->type##s[i];			\
-@@ -650,6 +658,7 @@ static struct resources *get_resources(struct device *dev)
+@@ -661,6 +669,7 @@ static struct resources *get_resources(struct device *dev)
  	drmModeFreeResources(_res);
  
  	/* Set the name of all connectors based on the type name and the per-type ID. */
-+	if (need_resource(connector))
++	if (needs_resource(connector))
  	for (i = 0; i < res->count_connectors; i++) {
  		struct connector *connector = &res->connectors[i];
  		drmModeConnector *conn = connector->connector;
-@@ -663,6 +672,7 @@ static struct resources *get_resources(struct device *dev)
+@@ -674,6 +683,7 @@ static struct resources *get_resources(struct device *dev)
  	}
  
  #define get_properties(_res, type, Type)					\
-+	if (need_resource(type))						\
++	if (needs_resource(type))						\
  	do {									\
  		for (i = 0; i < (int)(_res)->count_##type##s; ++i) {	\
  			struct type *obj = &res->type##s[i];			\
-@@ -690,6 +700,7 @@ static struct resources *get_resources(struct device *dev)
+@@ -701,6 +711,7 @@ static struct resources *get_resources(struct device *dev)
  	get_properties(res, crtc, CRTC);
  	get_properties(res, connector, CONNECTOR);
  
-+	if (need_resource(crtc))
++	if (needs_resource(crtc))
  	for (i = 0; i < res->count_crtcs; ++i)
  		res->crtcs[i].mode = &res->crtcs[i].crtc->mode;
  
-@@ -2026,7 +2037,6 @@ int main(int argc, char **argv)
+@@ -2186,7 +2197,6 @@ int main(int argc, char **argv)
  	struct device dev;
  
  	int c;
@@ -108,7 +97,7 @@ index 8ff6c80..5291ca0 100644
  	int drop_master = 0;
  	int test_vsync = 0;
  	int test_cursor = 0;
-@@ -2070,7 +2080,7 @@ int main(int argc, char **argv)
+@@ -2231,7 +2241,7 @@ int main(int argc, char **argv)
  			encoders = 1;
  			break;
  		case 'f':
@@ -117,37 +106,53 @@ index 8ff6c80..5291ca0 100644
  			break;
  		case 'F':
  			parse_fill_patterns(optarg);
-@@ -2143,7 +2153,7 @@ int main(int argc, char **argv)
+@@ -2307,7 +2317,7 @@ int main(int argc, char **argv)
  
  	/* Dump all the details when no* arguments are provided. */
  	if (!args)
 -		encoders = connectors = crtcs = planes = framebuffers = 1;
 +		encoders = connectors = crtcs = planes = fbs = 1;
  
- 	if (test_vsync && !count) {
- 		fprintf(stderr, "page flipping requires at least one -s option.\n");
-@@ -2159,7 +2169,11 @@ int main(int argc, char **argv)
+ 	if (test_vsync && !count && !set_preferred) {
+ 		fprintf(stderr, "page flipping requires at least one -s or -r option.\n");
+@@ -2318,6 +2328,8 @@ int main(int argc, char **argv)
  		return -1;
  	}
  
--	dev.fd = util_open(device, module);
-+	dump_only = !count && !plane_count && !prop_count;
-+	if (dump_only && !device && !module)
-+		dev.fd = open("/dev/dri/card0", O_RDWR);
-+	else
-+		dev.fd = util_open(device, module);
++	needs_all = set_preferred || count || prop_count || plane_count;
++
+ 	dev.fd = util_open(device, module);
  	if (dev.fd < 0)
  		return -1;
- 
-@@ -2186,7 +2200,7 @@ int main(int argc, char **argv)
+@@ -2346,7 +2358,7 @@ int main(int argc, char **argv)
  	dump_resource(&dev, connectors);
  	dump_resource(&dev, crtcs);
  	dump_resource(&dev, planes);
 -	dump_resource(&dev, framebuffers);
 +	dump_resource(&dev, fbs);
  
- 	for (i = 0; i < prop_count; ++i)
- 		set_property(&dev, &prop_args[i]);
+ 	if (dev.use_atomic)
+ 		dev.req = drmModeAtomicAlloc();
+diff --git a/tests/util/kms.c b/tests/util/kms.c
+index 34a8418..f209e72 100644
+--- a/tests/util/kms.c
++++ b/tests/util/kms.c
+@@ -97,6 +97,7 @@ const char *util_lookup_connector_status_name(unsigned int status)
+ }
+ 
+ static const char * const modules[] = {
++	"rockchip",
+ 	"i915",
+ 	"amdgpu",
+ 	"radeon",
+@@ -109,7 +110,6 @@ static const char * const modules[] = {
+ 	"sti",
+ 	"tegra",
+ 	"imx-drm",
+-	"rockchip",
+ 	"atmel-hlcdc",
+ 	"fsl-dcu-drm",
+ 	"vc4",
 -- 
 2.20.1
 

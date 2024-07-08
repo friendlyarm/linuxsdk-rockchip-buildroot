@@ -3,6 +3,9 @@
 export GST_DEBUG_NO_COLOR=1
 export GST_INSPECT_NO_COLORS=1
 
+# Disable videodecoder's QoS by default
+export GST_VIDEO_DECODER_QOS=0
+
 # Set dma-feature in kmssrc
 # export GST_KMSSRC_DMA_FEATURE=1
 
@@ -23,6 +26,9 @@ export GST_INSPECT_NO_COLORS=1
 
 # Try to use ARM AFBC to get better performance, but not work for all sinks.
 # export GST_MPP_VIDEODEC_DEFAULT_ARM_AFBC=1
+
+# Uncomment this to ignore aspect ratio in kmssink
+# export KMSSINK_IGNORE_ASPECT=1
 
 # Use below env variables to configure kmssink plane ZPOS.
 # export KMSSINK_PLANE_ZPOS=0

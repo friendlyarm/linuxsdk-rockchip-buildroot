@@ -1,7 +1,7 @@
-From dcb5ed4a3886a667ab1f2258d2ca6ee6be3aeb2c Mon Sep 17 00:00:00 2001
+From 1ba76fe263f4667e7709b1d6401d3c3063b2c76a Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Fri, 10 Jun 2022 18:36:00 +0800
-Subject: [PATCH 8/9] Support unifont
+Subject: [PATCH 08/11] Support unifont
 
 https://ftp.gnu.org/gnu/unifont/unifont-14.0.04/unifont-14.0.04.bdf.gz
 
@@ -19,19 +19,17 @@ Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
  create mode 120000 unifont.bdf
 
 diff --git a/Makefile b/Makefile
-index 1658b3c..a242bcd 100644
+index 14b6d49..ef8f6f3 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -8,6 +8,7 @@ FRECON_LITE ?= 0
- CHROMEOS ?= 1
+@@ -5,11 +5,18 @@
+ include common.mk
+ 
  USE_GETTY ?= 1
- DRM_NO_MASTER ?= 0
 +USE_UNIFONT ?= 0
  
  ifeq ($(USE_GETTY),1)
  CPPFLAGS += -DUSE_GETTY=1
-@@ -17,6 +18,12 @@ ifeq ($(DRM_NO_MASTER),1)
- CPPFLAGS += -DDRM_NO_MASTER=1
  endif
  
 +ifeq ($(USE_UNIFONT),1)
@@ -40,10 +38,10 @@ index 1658b3c..a242bcd 100644
 +FONT = ter-u16n.bdf
 +endif
 +
- PC_DEPS = libdrm libpng libtsm
- ifeq ($(FRECON_LITE),1)
- FRECON_OBJECTS = $(filter-out %_full.o,$(C_OBJECTS))
-@@ -46,8 +53,8 @@ CFLAGS += -Wall -Wsign-compare -Wpointer-arith -Wcast-qual -Wcast-align
+ PC_DEPS = libdrm libtsm
+ PC_DEPS += libudev
+ TARGET ?= frecon
+@@ -23,8 +30,8 @@ CFLAGS += -Wall -Wsign-compare -Wpointer-arith -Wcast-qual -Wcast-align
  CPPFLAGS += $(PC_CFLAGS) -I$(OUT)
  LDLIBS += $(PC_LIBS)
  
@@ -162,10 +160,10 @@ index fbb6c6f..b8390ae 100755
    def HandleENDCHAR(self, _match):
      """Uses the most recent glyph data and adds it to the GlyphSet"""
 diff --git a/term.c b/term.c
-index 8ff698e..bde1130 100644
+index 8e5a747..1013987 100644
 --- a/term.c
 +++ b/term.c
-@@ -132,7 +132,7 @@ static int term_draw_cell(struct tsm_screen* screen, uint64_t id,
+@@ -130,7 +130,7 @@ static int term_draw_cell(struct tsm_screen* screen, uint64_t id,
  	}
  
  	if (len)

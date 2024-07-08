@@ -1,7 +1,7 @@
-From 27d225a8a88a002f02c9ad3f5db357b0ad5b1bf1 Mon Sep 17 00:00:00 2001
+From 414968de809d9f5297d58890f9a3f7da0f531082 Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Thu, 7 Mar 2019 17:38:16 +0800
-Subject: [PATCH] Support specifing devices in command args
+Subject: [PATCH 1/8] Support specifing devices in command args
 
 Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
 ---
@@ -61,5 +61,5 @@ index 51e1e3c..2a7b527 100644
          config_parse_file();
      }
 -- 
-2.11.0
+2.20.1
 

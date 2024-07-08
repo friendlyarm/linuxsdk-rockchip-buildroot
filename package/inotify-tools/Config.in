@@ -9,3 +9,11 @@ config BR2_PACKAGE_INOTIFY_TOOLS
 	  'inotifywatch' binaries.
 
 	  https://github.com/inotify-tools/inotify-tools
+
+if BR2_PACKAGE_INOTIFY_TOOLS
+
+config BR2_PACKAGE_INOTIFY_TOOLS_STATIC
+	bool "Enable static"
+	default y if BR2_STATIC_LIBS
+
+endif

@@ -31,8 +31,9 @@ comment "X11 video driver needs X.org"
 
 config BR2_PACKAGE_SDL2_KMSDRM
 	bool "KMS/DRM video driver"
-	depends on BR2_PACKAGE_LIBDRM
+	depends on BR2_TOOLCHAIN_HAS_THREADS  # libdrm
 	depends on BR2_PACKAGE_HAS_LIBGBM
+	select BR2_PACKAGE_LIBDRM
 
 comment "KMS/DRM video driver needs libdrm"
 	depends on !BR2_PACKAGE_LIBDRM
@@ -61,6 +62,7 @@ comment "OpenGL ES support needs an OpenGL ES provider"
 config BR2_PACKAGE_SDL2_WAYLAND
 	bool "Wayland video driver"
 	depends on BR2_PACKAGE_WAYLAND
+	select BR2_PACKAGE_LIBXKBCOMMON
 
 comment "Wayland video driver needs wayland"
 	depends on !BR2_PACKAGE_WAYLAND

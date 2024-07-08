@@ -1,15 +1,15 @@
-From 9a51dbca603267fd65a64b38e30a356affba38e3 Mon Sep 17 00:00:00 2001
+From 6d51b209db0d01ae45a49029b6b0611afffc4bdc Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Thu, 7 Mar 2019 18:20:44 +0800
-Subject: [PATCH 2/2] Support parsing <configfile>.d/*.conf
+Subject: [PATCH 2/8] Support parsing <configfile>.d/*.conf
 
 Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
 ---
- input-event-daemon.c | 69 ++++++++++++++++++++++++++++++++++++++++++++++------
+ input-event-daemon.c | 69 +++++++++++++++++++++++++++++++++++++++-----
  1 file changed, 61 insertions(+), 8 deletions(-)
 
 diff --git a/input-event-daemon.c b/input-event-daemon.c
-index 2a7b527..a324382 100644
+index 2a7b527..646d00d 100644
 --- a/input-event-daemon.c
 +++ b/input-event-daemon.c
 @@ -4,6 +4,7 @@
@@ -159,5 +159,5 @@ index 2a7b527..a324382 100644
  
      daemon_start_listener();
 -- 
-2.11.0
+2.20.1
 

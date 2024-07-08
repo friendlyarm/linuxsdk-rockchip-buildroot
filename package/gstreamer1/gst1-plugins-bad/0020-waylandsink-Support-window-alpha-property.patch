@@ -1,7 +1,7 @@
-From 094b728bb0ab22c917928d334358b4491b04b163 Mon Sep 17 00:00:00 2001
+From 632e12d43e81b0c851c6db9450b658df17bba1d5 Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Tue, 28 Dec 2021 14:06:19 +0800
-Subject: [PATCH 20/41] waylandsink: Support window alpha property
+Subject: [PATCH 20/43] waylandsink: Support window alpha property
 
 Tested with:
 gst-launch-1.0 videotestsrc ! waylandsink alpha=0.5
@@ -15,7 +15,7 @@ Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
  4 files changed, 45 insertions(+)
 
 diff --git a/ext/wayland/gstwaylandsink.c b/ext/wayland/gstwaylandsink.c
-index 56a6849..008c774 100644
+index 648b5ff..71b1c1c 100644
 --- a/ext/wayland/gstwaylandsink.c
 +++ b/ext/wayland/gstwaylandsink.c
 @@ -62,6 +62,7 @@ enum
@@ -89,7 +89,7 @@ index 56a6849..008c774 100644
      default:
        if (!gst_video_overlay_set_property (object, PROP_LAST, prop_id, value))
          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-@@ -827,6 +856,7 @@ gst_wayland_sink_show_frame (GstVideoSink * vsink, GstBuffer * buffer)
+@@ -825,6 +854,7 @@ gst_wayland_sink_show_frame (GstVideoSink * vsink, GstBuffer * buffer)
            G_CALLBACK (on_window_closed), self, 0);
        gst_wl_window_set_rotate_method (self->window,
            self->current_rotate_method);
@@ -97,7 +97,7 @@ index 56a6849..008c774 100644
      }
    }
  
-@@ -1085,6 +1115,7 @@ gst_wayland_sink_set_window_handle (GstVideoOverlay * overlay, guintptr handle)
+@@ -1083,6 +1113,7 @@ gst_wayland_sink_set_window_handle (GstVideoOverlay * overlay, guintptr handle)
              &self->render_lock);
          gst_wl_window_set_rotate_method (self->window,
              self->current_rotate_method);
@@ -118,7 +118,7 @@ index a417788..0339ef7 100644
    gchar *display_name;
  
 diff --git a/gst-libs/gst/wayland/gstwlwindow.c b/gst-libs/gst/wayland/gstwlwindow.c
-index fed1c97..f470338 100644
+index e954ef3..a102b65 100644
 --- a/gst-libs/gst/wayland/gstwlwindow.c
 +++ b/gst-libs/gst/wayland/gstwlwindow.c
 @@ -24,6 +24,7 @@
@@ -129,7 +129,7 @@ index fed1c97..f470338 100644
  #include <stdlib.h>
  
  #include "gstwlwindow.h"
-@@ -267,6 +268,15 @@ gst_wl_window_set_config (GstWlWindow * self, const char *config)
+@@ -274,6 +275,15 @@ gst_wl_window_set_config (GstWlWindow * self, const char *config)
    xdg_toplevel_set_title (priv->xdg_toplevel, config);
  }
  

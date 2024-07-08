@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-SDL2_VERSION = 2.0.22
+SDL2_VERSION = 2.28.5
 SDL2_SOURCE = SDL2-$(SDL2_VERSION).tar.gz
 SDL2_SITE = http://www.libsdl.org/release
 SDL2_LICENSE = Zlib
@@ -22,6 +22,9 @@ SDL2_CONF_OPTS += \
 
 # We must enable static build to get compilation successful.
 SDL2_CONF_OPTS += -DSDL_STATIC=ON
+ifeq ($(BR2_ARM_INSTRUCTIONS_THUMB),y)
+SDL2_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -marm"
+endif
 
 ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
 SDL2_DEPENDENCIES += udev
@@ -139,7 +142,7 @@ SDL2_CONF_OPTS += -DSDL_KMSDRM=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_SDL2_WAYLAND),y)
-SDL2_DEPENDENCIES += wayland
+SDL2_DEPENDENCIES += wayland libxkbcommon
 SDL2_CONF_OPTS += -DSDL_WAYLAND=ON
 else
 SDL2_CONF_OPTS += -DSDL_WAYLAND=OFF

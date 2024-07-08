@@ -15,19 +15,17 @@ RECOVERY_CFLAGS = $(TARGET_CFLAGS) -I. \
 	-fPIC \
 	-lpthread \
 	-lcurl \
-	-lssl \
-	-lcrypto \
 	-lbz2
 
 RECOVERY_MAKE_ENV = $(TARGET_MAKE_ENV)
 
-RECOVERY_DEPENDENCIES += libcurl openssl
+RECOVERY_DEPENDENCIES += libpthread-stubs util-linux libcurl bzip2
 
 ifeq ($(BR2_PACKAGE_RECOVERY_NO_UI),y)
 RECOVERY_MAKE_ENV += RecoveryNoUi=true
 else
-RECOVERY_CFLAGS += -lz -lpng -ldrm -I$(STAGING_DIR)/usr/include/libdrm
-RECOVERY_DEPENDENCIES += libzlib libpng libdrm
+RECOVERY_CFLAGS += -lpng -ldrm -lz -lm -I$(STAGING_DIR)/usr/include/libdrm
+RECOVERY_DEPENDENCIES += libpng libdrm libzlib
 endif
 
 ifeq ($(BR2_PACKAGE_RECOVERY_USE_RKUPDATE),y)
@@ -44,6 +42,20 @@ endif
 
 ifeq ($(BR2_PACKAGE_RECOVERY_RETRY),y)
 RECOVERY_CFLAGS += -DRETRY_BOOT=ON
+endif
+
+ifeq ($(BR2_PACKAGE_RECOVERY_STATIC),y)
+RECOVERY_CFLAGS += -static
+
+# For static link with libcurl
+ifeq ($(BR2_PACKAGE_OPENSSL),y)
+RECOVERY_CFLAGS += -lssl -lcrypto
+RECOVERY_DEPENDENCIES += openssl
+endif
+ifeq ($(BR2_PACKAGE_RTMPDUMP),y)
+RECOVERY_CFLAGS += -lrtmp
+RECOVERY_DEPENDENCIES += rtmpdump
+endif
 endif
 
 define RECOVERY_BUILD_CMDS
@@ -67,7 +79,8 @@ endif
 
 ifeq ($(BR2_PACKAGE_RECOVERY_BOOTCONTROL), y)
 define BOOTCONTROLBIN_INSTALL_TARGET
-	$(INSTALL) -D -m 755 $(@D)/update_engine/S99_bootcontrol $(TARGET_DIR)/etc/init.d/
+	$(INSTALL) -D -m 755 $(@D)/update_engine/S99_bootcontrol \
+		$(TARGET_DIR)/etc/init.d/
 endef
 endif
 

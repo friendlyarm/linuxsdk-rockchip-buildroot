@@ -1,4 +1,4 @@
-From 7c68fd42db921d845724a54e198226a13da6c9ba Mon Sep 17 00:00:00 2001
+From eb05e734dc0952ea56ff2ac63b45eae478822349 Mon Sep 17 00:00:00 2001
 From: Jeffy Chen <jeffy.chen@rock-chips.com>
 Date: Mon, 15 Jun 2020 10:03:01 +0800
 Subject: [PATCH 08/43] kmssink: Support setting plane zpos
@@ -16,10 +16,10 @@ Signed-off-by: Jeffy Chen <jeffy.chen@rock-chips.com>
  2 files changed, 79 insertions(+)
 
 diff --git a/sys/kms/gstkmssink.c b/sys/kms/gstkmssink.c
-index e20740f..4df343c 100644
+index 09ca8b6..b25e599 100644
 --- a/sys/kms/gstkmssink.c
 +++ b/sys/kms/gstkmssink.c
-@@ -1027,6 +1027,76 @@ gst_kms_sink_update_plane_properties (GstKMSSink * self)
+@@ -1024,6 +1024,76 @@ gst_kms_sink_update_plane_properties (GstKMSSink * self)
    gst_kms_sink_update_properties (&iter, self->plane_props);
  }
  
@@ -50,7 +50,7 @@ index e20740f..4df343c 100644
 +
 +  for (i = 0; i < props->count_props; i++) {
 +    prop = drmModeGetProperty (self->fd, props->props[i]);
-+    if (prop && !strcmp (prop->name, "ZPOS"))
++    if (prop && !g_ascii_strcasecmp (prop->name, "zpos"))
 +      break;
 +    drmModeFreeProperty (prop);
 +    prop = NULL;
@@ -96,7 +96,7 @@ index e20740f..4df343c 100644
  static gboolean
  gst_kms_sink_start (GstBaseSink * bsink)
  {
-@@ -1111,6 +1181,8 @@ retry_find_plane:
+@@ -1108,6 +1178,8 @@ retry_find_plane:
    self->crtc_id = crtc->crtc_id;
    self->plane_id = plane->plane_id;
  
@@ -105,7 +105,7 @@ index e20740f..4df343c 100644
    GST_INFO_OBJECT (self, "connector id = %d / crtc id = %d / plane id = %d",
        self->conn_id, self->crtc_id, self->plane_id);
  
-@@ -1246,6 +1318,11 @@ gst_kms_sink_stop (GstBaseSink * bsink)
+@@ -1243,6 +1315,11 @@ gst_kms_sink_stop (GstBaseSink * bsink)
    if (self->allocator)
      gst_kms_allocator_clear_cache (self->allocator);
  
@@ -117,7 +117,7 @@ index e20740f..4df343c 100644
    gst_buffer_replace (&self->last_buffer, NULL);
    gst_caps_replace (&self->allowed_caps, NULL);
    gst_object_replace ((GstObject **) & self->pool, NULL);
-@@ -2310,6 +2387,7 @@ gst_kms_sink_init (GstKMSSink * sink)
+@@ -2299,6 +2376,7 @@ gst_kms_sink_init (GstKMSSink * sink)
    sink->is_internal_fd = TRUE;
    sink->conn_id = -1;
    sink->plane_id = -1;
@@ -126,14 +126,14 @@ index e20740f..4df343c 100644
    gst_poll_fd_init (&sink->pollfd);
    sink->poll = gst_poll_new (TRUE);
 diff --git a/sys/kms/gstkmssink.h b/sys/kms/gstkmssink.h
-index a769d9b..f221eb6 100644
+index a769d9b..3b9eb7f 100644
 --- a/sys/kms/gstkmssink.h
 +++ b/sys/kms/gstkmssink.h
 @@ -54,6 +54,7 @@ struct _GstKMSSink {
    gint crtc_id;
    gint plane_id;
    guint pipe;
-+  guint saved_zpos;
++  gint saved_zpos;
  
    /* crtc data */
    guint16 hdisplay, vdisplay;

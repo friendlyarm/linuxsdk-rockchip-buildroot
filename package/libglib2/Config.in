@@ -5,8 +5,7 @@ config BR2_PACKAGE_LIBGLIB2
 	depends on BR2_USE_MMU # fork()
 	select BR2_PACKAGE_LIBICONV if !BR2_ENABLE_LOCALE
 	select BR2_PACKAGE_LIBFFI
-	select BR2_PACKAGE_PCRE
-	select BR2_PACKAGE_PCRE_UCP
+	select BR2_PACKAGE_PCRE2
 	select BR2_PACKAGE_ZLIB
 	help
 	  Low-level core library that forms the basis of GTK+ and GNOME.
@@ -16,3 +15,12 @@ config BR2_PACKAGE_LIBGLIB2
 comment "libglib2 needs a toolchain w/ wchar, threads"
 	depends on BR2_USE_MMU
 	depends on !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HAS_THREADS
+
+if BR2_PACKAGE_LIBGLIB2
+
+config BR2_PACKAGE_LIBGLIB2_STATIC
+	bool "Enable static"
+	select BR2_PACKAGE_PCRE2_STATIC
+	default y if BR2_STATIC_LIBS
+
+endif

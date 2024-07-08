@@ -58,7 +58,7 @@ ROCKCHIP_MALI_VER = r18p0
 else ifneq ($(BR2_PACKAGE_RK3326)$(BR2_PACKAGE_PX30),)
 ROCKCHIP_MALI_GPU = bifrost-g31
 ROCKCHIP_MALI_VER = g13p0
-else ifneq ($(BR2_PACKAGE_RK3566_RK3568)$(BR2_PACKAGE_RK3562),)
+else ifneq ($(BR2_PACKAGE_RK3566_RK3568)$(BR2_PACKAGE_RK3562)$(BR2_PACKAGE_RK3576),)
 ROCKCHIP_MALI_GPU = bifrost-g52
 ROCKCHIP_MALI_VER = g13p0
 else ifeq ($(BR2_PACKAGE_RK3588),y)
@@ -113,5 +113,13 @@ ROCKCHIP_MALI_CONF_OPTS += \
 ifeq ($(BR2_PACKAGE_ROCKCHIP_MALI_OPTIMIZE_s),y)
 ROCKCHIP_MALI_CONF_OPTS += -Doptimize-level=Os
 endif
+
+# For packages that wouldn't honor flags in pkg config.
+define ROCKCHIP_MALI_POST_STAGING_INSTALL
+	cd $(@D)/build/; \
+		find . -maxdepth 1 -type f -name 'lib*.so.[0-9]' \
+		-exec ln -sf libmali.so.1 $(STAGING_DIR)/usr/lib/{} \;
+endef
+ROCKCHIP_MALI_POST_INSTALL_STAGING_HOOKS += ROCKCHIP_MALI_POST_STAGING_INSTALL
 
 $(eval $(meson-package))

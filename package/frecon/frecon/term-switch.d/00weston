@@ -1,6 +1,7 @@
 #!/bin/sh -e
 
-echo $@ >> /tmp/log
+type weston >/dev/null 2>/dev/null || exit 0
+
 case $1 in
 	on)
 		echo "compositor:state:freeze" > /tmp/.weston_drm.conf
